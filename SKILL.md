@@ -1,17 +1,16 @@
 # ClawFeed
 
-AI-powered news digest tool. Automatically generates structured summaries (4H/daily/weekly/monthly) from Twitter and RSS feeds.
+AI-powered news digest tool for single-user local deployment. Automatically generates structured summaries (4H/daily/weekly/monthly) from Twitter and RSS feeds.
 
-## Credentials & Dependencies
+## Overview
 
-ClawFeed runs in **read-only mode** with zero credentials — browse digests, view feeds, switch languages. Authentication features (bookmarks, sources, packs) require additional credentials.
+ClawFeed is optimized for local network deployment (e.g., at `192.168.2.21`). It runs as a standalone service with no external authentication requirements — all features are available without login.
 
-| Credential | Purpose | Required |
+## Dependencies
+
+| Dependency | Purpose | Required |
 |-----------|---------|----------|
-| `GOOGLE_CLIENT_ID` | Google OAuth login | For auth features |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth login | For auth features |
-| `SESSION_SECRET` | Session cookie encryption | For auth features |
-| `API_KEY` | Digest creation endpoint protection | For write API |
+| `API_KEY` | Digest creation endpoint protection | Optional |
 
 **Runtime dependency:** SQLite via `better-sqlite3` (native addon, bundled). No external database server required.
 
@@ -36,10 +35,7 @@ Configure in `.env` file:
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `DIGEST_PORT` | Server port | No | 8767 |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | For auth | - |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | For auth | - |
-| `SESSION_SECRET` | Session cookie encryption key | For auth | - |
-| `API_KEY` | Digest creation API key | For write API | - |
+| `API_KEY` | Digest creation API key | No | - |
 | `AI_DIGEST_DB` | SQLite database path | No | `data/digest.db` |
 | `ALLOWED_ORIGINS` | CORS allowed origins | No | localhost |
 
@@ -51,22 +47,30 @@ Runs on port `8767` by default. Set `DIGEST_PORT` env to change.
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
-| GET | /api/digests | List digests (?type=4h\|daily\|weekly&limit=20&offset=0) | - |
-| GET | /api/digests/:id | Get single digest | - |
-| POST | /api/digests | Create digest (internal) | - |
-| GET | /api/auth/google | Start Google OAuth flow | - |
-| GET | /api/auth/callback | OAuth callback endpoint | - |
-| GET | /api/auth/me | Get current user info | Yes |
-| POST | /api/auth/logout | Logout user | Yes |
-| GET | /api/marks | List user bookmarks | Yes |
-| POST | /api/marks | Add bookmark | Yes |
-| DELETE | /api/marks/:id | Remove bookmark | Yes |
-| GET | /api/config | Get configuration | - |
-| PUT | /api/config | Update configuration | - |
+| GET | /api/digests | List digests (?type=4h\|daily\|weekly&limit=20&offset=0) | No |
+| GET | /api/digests/:id | Get single digest | No |
+| POST | /api/digests | Create digest (internal) | No |
+| GET | /api/marks | List user bookmarks | No |
+| POST | /api/marks | Add bookmark | No |
+| DELETE | /api/marks/:id | Remove bookmark | No |
+| GET | /api/sources | List sources | No |
+| POST | /api/sources | Create source | No |
+| PUT | /api/sources/:id | Update source | No |
+| DELETE | /api/sources/:id | Delete source | No |
+| GET | /api/sources/export | Export all sources as JSON | No |
+| GET | /api/sources/resolve | Auto-detect source type from URL | No |
+| GET | /api/subscriptions | List subscriptions | No |
+| POST | /api/subscriptions | Subscribe to source | No |
+| DELETE | /api/subscriptions/:id | Unsubscribe from source | No |
+| PUT | /api/subscriptions/rename-group | Rename category/subcategory | No |
+| GET | /api/config | Get configuration | No |
+| PUT | /api/config | Update configuration | No |
+| GET | /api/changelog | Get changelog | No |
+| GET | /api/roadmap | Get roadmap | No |
 
 ## Web Dashboard
 
-Serve `web/index.html` via your reverse proxy or any static file server.
+Open `http://localhost:8767` (or your configured host) to access the web dashboard. No login required.
 
 ## Templates
 
@@ -80,12 +84,11 @@ Copy `config.example.json` to `config.json` and edit. See README for details.
 ## Reverse Proxy (Caddy example)
 
 ```
-handle /digest/api/* {
-    uri strip_prefix /digest/api
+digest.example.com {
     reverse_proxy localhost:8767
 }
-handle_path /digest/* {
-    root * /path/to/clawfeed/web
-    file_server
-}
 ```
+
+## Remote Management
+
+This instance is optimized for local network deployment. For automated updates and cross-server agent collaboration, see the standardized skill at `_agents/skills/clawfeed-updater/SKILL.md`.

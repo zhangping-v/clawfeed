@@ -1,6 +1,8 @@
 .env
 node_modules/
-data/
-*.db
+
+# Database files - only keep main digest.db
+data/*
+!data/digest.db
 *.db-shm
 *.db-wal

@@ -12,6 +12,7 @@ import {
   getConfig, setConfig,
   listSources, getSource, createSource, updateSource, deleteSource,
   listSubscriptions, subscribe, unsubscribe, bulkSubscribe,
+  insertSourceItems, listItems, updateSourceFetchStats,
 } from './db.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -211,6 +212,32 @@ async function resolveSourceUrl(url) {
   throw new Error('Cannot detect source type');
 }
 
+function normalizeItemPayload(item) {
+  if (!item || !item.url) return null;
+  const tags = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
+  const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : (item.metadata || {});
+  return {
+    url: String(item.url).trim(),
+    title: (item.title || '').toString(),
+    author: (item.author || '').toString(),
+    content: (item.content || '').toString(),
+    summary: (item.summary || '').toString(),
+    tags: JSON.stringify(tags),
+    metadata: JSON.stringify(metadata),
+    published_at: item.published_at ? String(item.published_at) : null,
+  };
+}
+
+function normalizeItems(items) {
+  if (!Array.isArray(items)) return [];
+  const normalized = [];
+  for (const it of items) {
+    const n = normalizeItemPayload(it);
+    if (n && n.url) normalized.push(n);
+  }
+  return normalized;
+}
+
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -369,6 +396,76 @@ const server = createServer(async (req, res) => {
       } catch (e) {
         return json(res, { error: e.message || 'cannot resolve' }, 422);
       }
+    }
+
+    // ── Items endpoints ──
+    const sourceItemsMatch = path.match(/^\/api\/sources\/(\d+)\/items$/);
+    if (req.method === 'POST' && sourceItemsMatch) {
+      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
+      const sourceId = parseInt(sourceItemsMatch[1]);
+      const source = getSource(db, sourceId);
+      if (!source) return json(res, { error: 'source not found' }, 404);
+      const body = await parseBody(req);
+      const items = normalizeItems(body.items);
+      if (!items.length) return json(res, { error: 'items array required' }, 400);
+      const result = insertSourceItems(db, sourceId, items);
+      updateSourceFetchStats(db, sourceId, result.added);
+      return json(res, { ok: true, ...result });
+    }
+
+    if (req.method === 'POST' && path === '/api/items/bulk') {
+      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
+      const body = await parseBody(req);
+      if (!Array.isArray(body.items) || !body.items.length) {
+        return json(res, { error: 'items array required' }, 400);
+      }
+      const bySource = new Map();
+      for (const raw of body.items) {
+        if (!raw || !raw.source_id) return json(res, { error: 'source_id required' }, 400);
+        const sid = parseInt(raw.source_id);
+        if (!bySource.has(sid)) bySource.set(sid, []);
+        bySource.get(sid).push(raw);
+      }
+      for (const sid of bySource.keys()) {
+        const source = getSource(db, sid);
+        if (!source) return json(res, { error: `source not found: ${sid}` }, 404);
+      }
+      let added = 0;
+      let duplicates = 0;
+      let skipped = 0;
+      for (const [sid, itemsRaw] of bySource.entries()) {
+        const items = normalizeItems(itemsRaw);
+        if (!items.length) continue;
+        const result = insertSourceItems(db, sid, items);
+        updateSourceFetchStats(db, sid, result.added);
+        added += result.added;
+        duplicates += result.duplicates;
+        skipped += result.skipped;
+      }
+      return json(res, { ok: true, added, duplicates, skipped });
+    }
+
+    if (req.method === 'GET' && path === '/api/items') {
+      const sourceId = params.get('source_id') ? parseInt(params.get('source_id')) : undefined;
+      const sourceType = params.get('type') || undefined;
+      const q = params.get('q') || undefined;
+      const tag = params.get('tag') || undefined;
+      const since = params.get('since') || undefined;
+      const until = params.get('until') || undefined;
+      const limit = parseInt(params.get('limit') || '50');
+      const offset = parseInt(params.get('offset') || '0');
+      const items = listItems(db, { sourceId, sourceType, q, tag, since, until, limit, offset });
+      return json(res, items);
+    }
+
+    if (req.method === 'GET' && sourceItemsMatch) {
+      const sourceId = parseInt(sourceItemsMatch[1]);
+      const limit = parseInt(params.get('limit') || '50');
+      const offset = parseInt(params.get('offset') || '0');
+      const since = params.get('since') || undefined;
+      const until = params.get('until') || undefined;
+      const items = listItems(db, { sourceId, since, until, limit, offset });
+      return json(res, items);
     }
 
     // ── Sources export ──

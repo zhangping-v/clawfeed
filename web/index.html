@@ -73,6 +73,30 @@
       color: #666;
     }
 
+    body.light .item-card {
+      background: #fff;
+      border-color: #ddd;
+    }
+
+    body.light .item-card:hover {
+      background: #fafafa;
+      border-color: #bbb;
+    }
+
+    body.light .item-card .item-title {
+      color: #222;
+    }
+
+    body.light .item-card .item-summary {
+      color: #666;
+    }
+
+    body.light .item-chip {
+      background: #f5f5f5;
+      border-color: #ddd;
+      color: #555;
+    }
+
     body.light .date-group-header {
       color: #888;
       border-color: #e0e0e0;
@@ -117,6 +141,27 @@
     body.light .source-card:hover {
       background: #fafafa;
       border-color: #bbb;
+    }
+
+    body.light .sources-table {
+      background: #fff;
+      border-color: #ddd;
+    }
+
+    body.light .sources-row {
+      border-color: #eee;
+      color: #444;
+    }
+
+    body.light .sources-row.header {
+      background: #f6f6f6;
+      color: #777;
+    }
+
+    body.light .sources-pagination button {
+      background: #fff;
+      border-color: #ccc;
+      color: #555;
     }
 
     body.light .source-form {
@@ -462,6 +507,60 @@
       white-space: nowrap;
     }
 
+    .item-card {
+      background: #1a1a1a;
+      border: 1px solid #282828;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .item-card:hover {
+      border-color: #444;
+      background: #1e1e1e;
+    }
+
+    .item-card .item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e6e6e6;
+      line-height: 1.4;
+    }
+
+    .item-card .item-summary {
+      font-size: 12px;
+      color: #8a8a8a;
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .item-card .item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 11px;
+      color: #6f6f6f;
+    }
+
+    .item-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #141414;
+      border: 1px solid #222;
+      color: #8aa;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+
     .digest-viewer {
       display: none;
       background: #1a1a1a;
@@ -771,6 +870,91 @@
       color: #f04040;
     }
 
+    .sources-table {
+      border: 1px solid #282828;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #141414;
+    }
+
+    .sources-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #222;
+      font-size: 12px;
+      color: #cfcfcf;
+    }
+
+    .sources-row:last-child {
+      border-bottom: none;
+    }
+
+    .sources-row.header {
+      background: #1a1a1a;
+      font-size: 11px;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .sources-cell {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sources-cell.type {
+      flex: 0 0 120px;
+    }
+
+    .sources-cell.status {
+      flex: 0 0 110px;
+    }
+
+    .sources-cell.time {
+      flex: 0 0 160px;
+    }
+
+    .sources-cell.actions {
+      flex: 0 0 180px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .sources-row.deleted {
+      opacity: 0.45;
+      filter: grayscale(1);
+    }
+
+    .sources-pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 4px;
+      color: #777;
+      font-size: 12px;
+    }
+
+    .sources-pagination button {
+      padding: 6px 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .sources-pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
     .toggle-switch {
       position: relative;
       display: inline-block;
@@ -1060,6 +1244,7 @@
       <div class="tab" data-type="daily">日报</div>
       <div class="tab" data-type="weekly">周报</div>
       <div class="tab" data-type="monthly">月报</div>
+      <div class="tab" data-type="items">📰 新闻</div>
       <div class="tab" data-type="marks">📌 Mark 收藏</div>
     </div>
     <div id="list" class="digest-list">
@@ -1101,7 +1286,7 @@
       zh: {
         title: '☀️ ClawFeed',
         subtitle: 'AI 新闻简报 — POWERED BY <a href="https://x.com/ZylosAI" target="_blank" rel="noopener" class="agent-name zylos">Jessie@ZylosAI</a>, <a href="https://x.com/OpenClaw" target="_blank" rel="noopener" class="agent-name openclaw">Lisa@OpenClaw</a>',
-        tab4h: '4H 简报', tabDaily: '日报', tabWeekly: '周报', tabMonthly: '月报', tabMarks: '📌 Mark 收藏',
+        tab4h: '4H 简报', tabDaily: '日报', tabWeekly: '周报', tabMonthly: '月报', tabItems: '📰 新闻', tabMarks: '📌 Mark 收藏',
         loading: '加载中...', noData: '暂无数据', loadMore: '加载更多', loadingMore: '加载中...',
         loadFail: '加载失败', back: '← 返回列表', cantLoad: '无法加载',
         today: '今天', yesterday: '昨天', articles: '篇',
@@ -1114,9 +1299,23 @@
         markSuccess: '📌 Mark 成功！', markDup: '已经 Mark 过了', markFail: '❌ Mark 失败',
         marked: '✅ 已 Mark', mark: '📌 Mark',
         items: '条', cannotLoadMarks: '无法加载 Marks 数据',
+        itemsTitle: '📰 新闻条目',
+        itemsSearchPlaceholder: '搜索标题或摘要...',
+        itemsTagPlaceholder: '标签过滤 (如: ai)',
+        itemsSourceAll: '所有来源',
+        itemsEmpty: '暂无新闻条目',
+        itemsLoadFail: '无法加载新闻条目',
+        itemsSourceUnknown: '未知来源',
+        itemsPublished: '发布时间',
+        itemsFetched: '抓取时间',
         weekdays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
         tabSources: '📡 数据源',
         sourcesTotal: '总数', sourcesActive: '活跃', sourcesTypes: '类型',
+        sourcesSearchPlaceholder: '搜索名称...',
+        sourcesTypeAll: '全部类型',
+        sourcesCatAll: '全部分类',
+        sourcesPagePrev: '上一页',
+        sourcesPageNext: '下一页',
         addSource: '➕ 添加源', editSource: '编辑', deleteSource: '删除',
         sourceName: '名称', sourceType: '类型', sourceConfig: '配置 (JSON)', sourcePublic: '公开',
         save: '保存', cancel: '取消',
@@ -1141,7 +1340,7 @@
       en: {
         title: '☀️ ClawFeed',
         subtitle: 'AI NEWS DIGEST — POWERED BY <a href="https://x.com/ZylosAI" target="_blank" rel="noopener" class="agent-name zylos">Jessie@ZylosAI</a>, <a href="https://x.com/OpenClaw" target="_blank" rel="noopener" class="agent-name openclaw">Lisa@OpenClaw</a>',
-        tab4h: '4H Briefs', tabDaily: 'Daily', tabWeekly: 'Weekly', tabMonthly: 'Monthly', tabMarks: '📌 Marks',
+        tab4h: '4H Briefs', tabDaily: 'Daily', tabWeekly: 'Weekly', tabMonthly: 'Monthly', tabItems: '📰 Items', tabMarks: '📌 Marks',
         loading: 'Loading...', noData: 'No data', loadMore: 'Load More', loadingMore: 'Loading...',
         loadFail: 'Failed to load', back: '← Back', cantLoad: 'Cannot load',
         today: 'Today', yesterday: 'Yesterday', articles: 'articles',
@@ -1154,9 +1353,23 @@
         markSuccess: '📌 Marked!', markDup: 'Already marked', markFail: '❌ Mark failed',
         marked: '✅ Marked', mark: '📌 Mark',
         items: 'items', cannotLoadMarks: 'Cannot load marks',
+        itemsTitle: '📰 News Items',
+        itemsSearchPlaceholder: 'Search title or summary...',
+        itemsTagPlaceholder: 'Filter tag (e.g. ai)',
+        itemsSourceAll: 'All sources',
+        itemsEmpty: 'No news items yet',
+        itemsLoadFail: 'Cannot load news items',
+        itemsSourceUnknown: 'Unknown source',
+        itemsPublished: 'Published',
+        itemsFetched: 'Fetched',
         weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         tabSources: '📡 Sources',
         sourcesTotal: 'Total', sourcesActive: 'Active', sourcesTypes: 'Types',
+        sourcesSearchPlaceholder: 'Search name...',
+        sourcesTypeAll: 'All types',
+        sourcesCatAll: 'All categories',
+        sourcesPagePrev: 'Prev',
+        sourcesPageNext: 'Next',
         addSource: '➕ Add Source', editSource: 'Edit', deleteSource: 'Delete',
         sourceName: 'Name', sourceType: 'Type', sourceConfig: 'Config (JSON)', sourcePublic: 'Public',
         save: 'Save', cancel: 'Cancel',
@@ -1199,6 +1412,7 @@
       document.querySelector('[data-type="daily"]').textContent = t('tabDaily');
       document.querySelector('[data-type="weekly"]').textContent = t('tabWeekly');
       document.querySelector('[data-type="monthly"]').textContent = t('tabMonthly');
+      document.querySelector('[data-type="items"]').textContent = t('tabItems');
       document.querySelector('[data-type="marks"]').textContent = t('tabMarks');
     }
 
@@ -1279,6 +1493,10 @@
       currentType = 'sources';
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       currentOffset = 0; allLoaded = false;
+      sourcesPage = 1;
+      sourceSearchText = '';
+      sourceTypeFilter = 'all';
+      sourceCategoryFilter = 'all';
       renderSources();
       location.hash = 'sources';
     }
@@ -1301,46 +1519,20 @@
     let currentType = '4h';
     let markedUrls = new Map();
     const PAGE_SIZE = 10;
-    let collapsedGroups = new Set(JSON.parse(localStorage.getItem('collapsedGroups') || '[]'));
-    function toggleGroup(key) {
-      if (collapsedGroups.has(key)) collapsedGroups.delete(key);
-      else collapsedGroups.add(key);
-      localStorage.setItem('collapsedGroups', JSON.stringify([...collapsedGroups]));
-      renderSources(true);
-    }
-
-    async function renameGroup(e, type, cat, sub) {
-      e.stopPropagation();
-      const oldVal = type === 'cat' ? cat : sub;
-      const newVal = prompt(lang === 'zh' ? `重命名分类 "${oldVal}"` : `Rename "${oldVal}"`, oldVal);
-      if (newVal === null) return;
-      const cleanNew = newVal.trim();
-      if (cleanNew === oldVal) return;
-
-      const body = { oldCategory: cat };
-      if (type === 'cat') {
-        body.newCategory = cleanNew;
-      } else {
-        body.oldSubcategory = sub;
-        body.newSubcategory = cleanNew;
-        body.newCategory = cat; // Subcategory rename is within its category
-      }
-
-      await fetch(`${API}/subscriptions/rename-group`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify(body)
-      });
-      renderSources();
-    }
+    let loadedItems = [];
+    let itemsSearchText = '';
+    let itemsTagText = '';
+    let itemsSourceId = 'all';
+    let itemsTypeFilter = 'all';
     let currentOffset = 0;
     let allLoaded = false;
     let lastSubscriptions = [];
     let allSourcesList = [];
     let sourceSearchText = '';
-    let sourceSearchType = 'all';
-    let sourceSearchCat = 'all';
+    let sourceTypeFilter = 'all';
+    let sourceCategoryFilter = 'all';
+    let sourcesPage = 1;
+    const SOURCES_PAGE_SIZE = 10;
 
     function parseCreatedAt(d) {
       const ca = d.created_at;
@@ -1446,6 +1638,153 @@
 
     let loadedDigests = [];
 
+    async function ensureSourcesList() {
+      if (allSourcesList.length) return allSourcesList;
+      try {
+        const r = await fetch(`${API}/sources`);
+        const data = await r.json();
+        allSourcesList = Array.isArray(data) ? data : [];
+      } catch { allSourcesList = []; }
+      return allSourcesList;
+    }
+
+    function formatItemTime(it) {
+      const raw = it.published_at || it.fetched_at;
+      if (!raw) return '';
+      const dt = new Date(raw.replace(' ', 'T') + (raw.includes('Z') || raw.includes('+') ? '' : 'Z'));
+      if (Number.isNaN(dt.getTime())) return raw;
+      const date = dt.toISOString().slice(0, 10);
+      const time = dt.toISOString().slice(11, 16);
+      return `${date} ${time}`;
+    }
+
+    function renderItemCard(it, idx) {
+      const title = it.title || it.url || t('itemsSourceUnknown');
+      const summary = it.summary || it.content || '';
+      let tags = [];
+      try { tags = JSON.parse(it.tags || '[]'); } catch { tags = []; }
+      const tagHtml = tags.slice(0, 4).map(tag => `<span class="item-chip">#${esc(tag)}</span>`).join('');
+      const timeLabel = it.published_at ? t('itemsPublished') : t('itemsFetched');
+      const timeText = formatItemTime(it);
+      const sourceName = it.source_name || t('itemsSourceUnknown');
+      return `<div class="item-card" data-idx="${idx}">
+        <div class="item-title"><a href="${esc(it.url || '#')}" target="_blank" style="color:inherit;text-decoration:none;">${esc(title)}</a></div>
+        ${summary ? `<div class="item-summary">${esc(summary)}</div>` : ''}
+        <div class="item-meta">
+          <span class="item-chip">📡 ${esc(sourceName)}</span>
+          ${timeText ? `<span class="item-chip">🕒 ${timeLabel}: ${esc(timeText)}</span>` : ''}
+          ${tagHtml}
+        </div>
+      </div>`;
+    }
+
+    async function openItemDetail(it) {
+      const list = document.getElementById('list');
+      const viewer = document.getElementById('viewer');
+      list.innerHTML = '';
+      await loadMarkedUrls();
+      const isMarked = markedUrls.has(it.url);
+      const markId = markedUrls.get(it.url);
+      let tags = [];
+      try { tags = JSON.parse(it.tags || '[]'); } catch { tags = []; }
+      const tagHtml = tags.length ? tags.map(tag => `<span class="item-chip">#${esc(tag)}</span>`).join('') : '';
+      const timeLabel = it.published_at ? t('itemsPublished') : t('itemsFetched');
+      const timeText = formatItemTime(it);
+      const sourceName = it.source_name || t('itemsSourceUnknown');
+      const btnText = isMarked ? t('marked') : t('mark');
+      const btnClass = isMarked ? 'mark-btn marked' : 'mark-btn';
+      viewer.innerHTML = `<div class="back-btn" onclick="renderList()">${t('back')}</div>
+        <div class="item-card">
+          <div class="item-title"><a href="${esc(it.url || '#')}" target="_blank" style="color:inherit;text-decoration:none;">${esc(it.title || it.url || t('itemsSourceUnknown'))}</a></div>
+          ${it.summary ? `<div class="item-summary">${esc(it.summary)}</div>` : ''}
+          ${it.content ? `<div class="item-summary" style="color:#777;">${esc(it.content)}</div>` : ''}
+          <div class="item-meta">
+            <span class="item-chip">📡 ${esc(sourceName)}</span>
+            ${timeText ? `<span class="item-chip">🕒 ${timeLabel}: ${esc(timeText)}</span>` : ''}
+            ${tagHtml}
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+            <span class="${btnClass}" onclick="${isMarked ? `doUnmark('${escJS(it.url)}', ${markId}, this)` : `doMark('${escJS(it.url)}', this)`}">${btnText}</span>
+          </div>
+        </div>`;
+      viewer.style.display = 'block';
+    }
+
+    async function renderItems(append = false) {
+      const list = document.getElementById('list');
+      const viewer = document.getElementById('viewer');
+      viewer.style.display = 'none';
+
+      if (!append) {
+        currentOffset = 0;
+        allLoaded = false;
+        loadedItems = [];
+        list.innerHTML = `<div class="loading">${t('loading')}</div>`;
+      }
+
+      await ensureSourcesList();
+
+      const params = new URLSearchParams();
+      params.set('limit', PAGE_SIZE);
+      params.set('offset', currentOffset);
+      if (itemsSearchText) params.set('q', itemsSearchText);
+      if (itemsTagText) params.set('tag', itemsTagText);
+      if (itemsSourceId && itemsSourceId !== 'all') params.set('source_id', itemsSourceId);
+      if (itemsTypeFilter && itemsTypeFilter !== 'all') params.set('type', itemsTypeFilter);
+
+      try {
+        const resp = await fetch(`${API}/items?${params.toString()}`);
+        const items = await resp.json();
+        if (items.length < PAGE_SIZE) allLoaded = true;
+        loadedItems = loadedItems.concat(items);
+        currentOffset += items.length;
+
+        const sourceOptions = allSourcesList
+          .filter(s => !s.is_deleted)
+          .map(s => `<option value="${s.id}" ${String(itemsSourceId) === String(s.id) ? 'selected' : ''}>${esc(s.name)}</option>`)
+          .join('');
+
+        let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h2 style="margin:0;font-size:16px;color:#e0e0e0;">${t('itemsTitle')}</h2>
+        </div>`;
+
+        html += `<div class="source-search-container" style="margin-bottom:12px;">
+          <input type="text" class="source-search-input" placeholder="${t('itemsSearchPlaceholder')}"
+            value="${esc(itemsSearchText)}" oninput="itemsSearchText=this.value; renderItems(false)">
+          <input type="text" class="source-search-input" style="max-width:180px;" placeholder="${t('itemsTagPlaceholder')}"
+            value="${esc(itemsTagText)}" oninput="itemsTagText=this.value; renderItems(false)">
+          <select class="source-search-select" onchange="itemsTypeFilter=this.value; renderItems(false)">
+            <option value="all">${t('sourcesTypeAll')}</option>
+            ${SOURCE_TYPES.map(type => `<option value="${type}" ${itemsTypeFilter === type ? 'selected' : ''}>${type}</option>`).join('')}
+          </select>
+          <select class="source-search-select" onchange="itemsSourceId=this.value; renderItems(false)">
+            <option value="all">${t('itemsSourceAll')}</option>
+            ${sourceOptions}
+          </select>
+        </div>`;
+
+        if (!loadedItems.length) {
+          html += `<div class="empty">${t('itemsEmpty')}</div>`;
+          list.innerHTML = html;
+          return;
+        }
+
+        html += `<div class="date-group-items">${loadedItems.map((it, idx) => renderItemCard(it, idx)).join('')}</div>`;
+        if (!allLoaded) {
+          html += `<div id="load-more" style="text-align:center;padding:16px;"><button onclick="loadMore()" style="padding:10px 32px;background:#2a2a2a;border:1px solid #444;border-radius:8px;color:#aaa;cursor:pointer;font-size:14px;transition:all .2s;">${t('loadMore')}</button></div>`;
+        }
+        list.innerHTML = html;
+        list.querySelectorAll('.item-card').forEach(card => {
+          const idx = parseInt(card.dataset.idx);
+          if (!Number.isNaN(idx) && loadedItems[idx]) {
+            card.onclick = () => openItemDetail(loadedItems[idx]);
+          }
+        });
+      } catch (e) {
+        list.innerHTML = `<div class="empty">${t('itemsLoadFail')}: ${e.message}</div>`;
+      }
+    }
+
     function goHome() {
       currentType = '4h';
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1460,6 +1799,7 @@
       viewer.style.display = 'none';
 
       if (currentType === 'marks') { renderMarks(); return; }
+      if (currentType === 'items') { renderItems(append); return; }
       if (currentType === 'sources') { renderSources(); return; }
 
       if (!append) {
@@ -1652,47 +1992,6 @@
     let showSourceForm = false;
     let editingSource = null;
 
-    let createdByMeExpanded = false;
-
-    function renderSourceCard(s, opts = {}) {
-      const icon = SOURCE_ICONS[s.type] || '📦';
-      const lastFetch = s.last_fetched_at ? s.last_fetched_at.slice(0, 16).replace('T', ' ') : t('never');
-      const showToggle = opts.showToggle !== false;
-      const showEdit = !!opts.showEdit;
-      const showDelete = !!opts.showDelete;
-      const showUnsub = !!opts.showUnsub;
-      return `<div class="source-card" style="padding:12px 16px;">
-    <div class="source-header">
-      <span class="source-name" style="font-size:14px;">${icon} ${s.name}${s.is_public ? ' <span style="font-size:11px;color:#666;font-weight:400;">🌐</span>' : ''}
-        <span style="font-size:11px;color:#6cf;background:#1a1a2e;padding:1px 6px;border-radius:3px;margin-left:4px;">${s.type}</span>
-      </span>
-      <div class="source-actions" style="gap:6px;">
-        ${showToggle ? `<label class="toggle-switch" title="Active"><input type="checkbox" ${s.is_active ? 'checked' : ''} onchange="toggleSource(${s.id}, this.checked)"><span class="toggle-slider"></span></label>` : ''}
-        ${showUnsub ? `<button class="danger" onclick="unsubSource(${s.id})" style="font-size:11px;padding:3px 8px;" title="${lang === 'zh' ? '退订' : 'Unsubscribe'}">✕</button>` : ''}
-        ${showEdit ? `<button onclick="editSourceForm(${s.id})" style="font-size:11px;padding:3px 8px;">${t('editSource')}</button>` : ''}
-        ${showDelete ? `<button class="danger" onclick="delSource(${s.id})" style="font-size:11px;padding:3px 8px;">${t('deleteSource')}</button>` : ''}
-      </div>
-    </div>
-    <div class="source-meta" style="font-size:11px;">
-      <span>${t('lastFetched')}: ${lastFetch}</span>
-    </div>
-  </div>`;
-    }
-
-    function renderDeletedSourceCard(s) {
-      const icon = SOURCE_ICONS[s.type] || '📦';
-      return `<div class="source-card" style="padding:12px 16px;opacity:0.4;pointer-events:none;filter:grayscale(1);">
-    <div class="source-header">
-      <span class="source-name" style="font-size:14px;">${icon} ${s.name}
-        <span style="font-size:11px;color:#f0b040;background:#3a2a00;padding:1px 6px;border-radius:3px;margin-left:4px;">⚠️ ${lang === 'zh' ? '已停用' : 'Deactivated'}</span>
-      </span>
-    </div>
-    <div class="source-meta" style="font-size:11px;">
-      <span style="color:#666;">${s.type}</span>
-    </div>
-  </div>`;
-    }
-
     async function renderSources(skipFetch = false) {
       const list = document.getElementById('list');
       if (!skipFetch) {
@@ -1708,43 +2007,40 @@
           subscriptions = lastSubscriptions;
         }
 
-        // Filtering
         const filteredSubs = subscriptions.filter(s => {
-          const matchText = !sourceSearchText ||
-            s.name.toLowerCase().includes(sourceSearchText.toLowerCase()) ||
-            (s.category && s.category.toLowerCase().includes(sourceSearchText.toLowerCase())) ||
-            (s.subcategory && s.subcategory.toLowerCase().includes(sourceSearchText.toLowerCase()));
-          const matchType = sourceSearchType === 'all' || s.type === sourceSearchType;
-          const matchCat = sourceSearchCat === 'all' || s.category === sourceSearchCat;
+          const matchText = !sourceSearchText || (s.name || '').toLowerCase().includes(sourceSearchText.toLowerCase());
+          const matchType = sourceTypeFilter === 'all' || s.type === sourceTypeFilter;
+          const matchCat = sourceCategoryFilter === 'all' || (s.category || '未分类') === sourceCategoryFilter;
           return matchText && matchType && matchCat;
         });
 
-        const allAvailableCats = [...new Set(subscriptions.map(s => s.category || '未分类'))].sort();
-
-        // Capture focus state
-        const activeSearchId = document.activeElement ? document.activeElement.id : null;
-        const selectionStart = (activeSearchId === 'sourceSearchInput' && document.activeElement.tagName === 'INPUT') ? document.activeElement.selectionStart : null;
-
         const total = subscriptions.length;
         const active = subscriptions.filter(s => s.is_active && !s.is_deleted).length;
-        let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        const pageCount = Math.max(1, Math.ceil(filteredSubs.length / SOURCES_PAGE_SIZE));
+        if (sourcesPage > pageCount) sourcesPage = pageCount;
+        if (sourcesPage < 1) sourcesPage = 1;
+        const start = (sourcesPage - 1) * SOURCES_PAGE_SIZE;
+        const pageItems = filteredSubs.slice(start, start + SOURCES_PAGE_SIZE);
+
+        let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <h2 style="margin:0;font-size:16px;color:#e0e0e0;">📡 ${lang === 'zh' ? '信息源' : 'Sources'}
             <span style="font-size:12px;color:#666;font-weight:400;margin-left:8px;">${active}/${total} ${lang === 'zh' ? '活跃' : 'active'}</span>
           </h2>
           <button onclick="showSourceForm=true;editingSource=null;renderSources(true)" style="padding:6px 14px;background:#1a3a1a;border:1px solid #40c040;border-radius:6px;color:#40c040;cursor:pointer;font-size:13px;">+ ${lang === 'zh' ? '添加源' : 'Add Source'}</button>
         </div>`;
 
-        // Search UI
-        html += `<div class="source-search-container">
-          <input type="text" id="sourceSearchInput" class="source-search-input" placeholder="${lang === 'zh' ? '搜索名称、分类...' : 'Search name, category...'}"
-            value="${esc(sourceSearchText)}" oninput="sourceSearchText=this.value; renderSources(true)">
-          <select class="source-search-select" onchange="sourceSearchType=this.value; renderSources(true)">
-            <option value="all">${lang === 'zh' ? '所有类型' : 'All Types'}</option>
-            ${SOURCE_TYPES.map(type => `<option value="${type}" ${sourceSearchType === type ? 'selected' : ''}>${SOURCE_ICONS[type] || ''} ${type}</option>`).join('')}
+        const availableCats = [...new Set(subscriptions.map(s => s.category || '未分类'))];
+        const catOptions = availableCats.map(c => `<option value="${esc(c)}" ${sourceCategoryFilter === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
+        html += `<div class="source-search-container" style="margin-bottom:12px;">
+          <input type="text" id="sourceSearchInput" class="source-search-input" placeholder="${t('sourcesSearchPlaceholder')}"
+            value="${esc(sourceSearchText)}" oninput="sourceSearchText=this.value; sourcesPage=1; renderSources(true)">
+          <select class="source-search-select" onchange="sourceTypeFilter=this.value; sourcesPage=1; renderSources(true)">
+            <option value="all">${t('sourcesTypeAll')}</option>
+            ${SOURCE_TYPES.map(type => `<option value="${type}" ${sourceTypeFilter === type ? 'selected' : ''}>${type}</option>`).join('')}
           </select>
-          <select class="source-search-select" style="max-width:120px;" onchange="sourceSearchCat=this.value; renderSources(true)">
-            <option value="all">${lang === 'zh' ? '所有分类' : 'All'}</option>
-            ${allAvailableCats.map(c => `<option value="${esc(c)}" ${sourceSearchCat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          <select class="source-search-select" onchange="sourceCategoryFilter=this.value; sourcesPage=1; renderSources(true)">
+            <option value="all">${t('sourcesCatAll')}</option>
+            ${catOptions}
           </select>
         </div>`;
 
@@ -1755,72 +2051,51 @@
             <div style="color:#888;font-size:14px;margin-bottom:24px;">${lang === 'zh' ? '添加 RSS、Twitter、Reddit 等信息源，AI 会自动抓取整理。' : 'Add RSS, Twitter, Reddit and more. AI will fetch and summarize them for you.'}</div>
             <button onclick="showSourceForm=true;editingSource=null;renderSources(true)" style="padding:10px 24px;background:#1a3a1a;border:1px solid #40c040;border-radius:8px;color:#40c040;cursor:pointer;font-size:14px;">+ ${lang === 'zh' ? '添加第一个源' : 'Add your first source'}</button>
           </div>`;
+        } else if (!filteredSubs.length) {
+          html += `<div class="empty">${t('noData')}</div>`;
         } else {
-          if (filteredSubs.length === 0) {
-            html += `<div style="text-align:center;padding:40px;color:#666;">${t('noData')}</div>`;
-          } else {
-            // Grouping by category/subcategory
-            const groups = {};
-            for (const s of filteredSubs) {
-              const cat = s.category || '未分类';
-              const sub = s.subcategory || '';
-              if (!groups[cat]) groups[cat] = {};
-              if (!groups[cat][sub]) groups[cat][sub] = [];
-              groups[cat][sub].push(s);
-            }
-            const sortedCats = Object.keys(groups).sort((a, b) => a === '未分类' ? 1 : b === '未分类' ? -1 : a.localeCompare(b));
-
-            for (const cat of sortedCats) {
-              const catCollapsed = collapsedGroups.has('c:' + cat);
-              html += `<div class="category-group">
-                <div class="category-title" onclick="toggleGroup('c:${escJS(cat)}')">
-                  <span class="group-chevron ${catCollapsed ? 'collapsed' : ''}">▾</span> 📂 ${esc(cat)}
-                  <span class="edit-group-btn" onclick="renameGroup(event, 'cat', '${escJS(cat)}')">✏️</span>
-                </div>
-                <div class="${catCollapsed ? 'collapsed-content' : ''}">`;
-
-              const subsInCat = groups[cat];
-              for (const sub of Object.keys(subsInCat).sort()) {
-                const subKey = `s:${cat}:${sub}`;
-                const subCollapsed = collapsedGroups.has(subKey);
-                if (sub) {
-                  html += `<div class="subcategory-group">
-                    <div class="subcategory-title" onclick="event.stopPropagation(); toggleGroup('${escJS(subKey)}')">
-                      <span class="group-chevron ${subCollapsed ? 'collapsed' : ''}">▾</span> 🏷️ ${esc(sub)}
-                      <span class="edit-group-btn" onclick="renameGroup(event, 'sub', '${escJS(cat)}', '${escJS(sub)}')">✏️</span>
-                    </div>
-                    <div class="${subCollapsed ? 'collapsed-content' : ''}">`;
-                }
-                html += '<div class="digest-list" style="gap:8px;margin-bottom:8px;">';
-                for (const s of subsInCat[sub]) {
-                  if (s.sourceDeleted || s.is_deleted) {
-                    html += renderDeletedSourceCard(s);
-                  } else {
-                    html += renderSourceCard(s, { showToggle: true, showEdit: true, showDelete: true });
-                  }
-                }
-                html += '</div>';
-                if (sub) html += '</div></div>';
-              }
-              html += `</div></div>`;
-            }
+          html += `<div class="sources-table">
+            <div class="sources-row header">
+              <div class="sources-cell">${lang === 'zh' ? '名称' : 'Name'}</div>
+              <div class="sources-cell type">${lang === 'zh' ? '类型' : 'Type'}</div>
+              <div class="sources-cell status">${lang === 'zh' ? '状态' : 'Status'}</div>
+              <div class="sources-cell time">${t('lastFetched')}</div>
+              <div class="sources-cell actions">${lang === 'zh' ? '操作' : 'Actions'}</div>
+            </div>
+          `;
+          for (const s of pageItems) {
+            const icon = SOURCE_ICONS[s.type] || '📦';
+            const lastFetch = s.last_fetched_at ? s.last_fetched_at.slice(0, 16).replace('T', ' ') : t('never');
+            const statusText = s.is_deleted ? (lang === 'zh' ? '已停用' : 'Deleted') : (s.is_active ? (lang === 'zh' ? '启用' : 'Active') : (lang === 'zh' ? '停用' : 'Inactive'));
+            html += `<div class="sources-row ${s.is_deleted ? 'deleted' : ''}">
+              <div class="sources-cell">${icon} ${esc(s.name)}</div>
+              <div class="sources-cell type">${esc(s.type)}</div>
+              <div class="sources-cell status">${statusText}</div>
+              <div class="sources-cell time">${lastFetch}</div>
+              <div class="sources-cell actions">
+                ${!s.is_deleted ? `<label class="toggle-switch" title="Active"><input type="checkbox" ${s.is_active ? 'checked' : ''} onchange="toggleSource(${s.id}, this.checked)"><span class="toggle-slider"></span></label>` : ''}
+                ${!s.is_deleted ? `<button onclick="editSourceForm(${s.id})" style="font-size:11px;padding:3px 8px;">${t('editSource')}</button>` : ''}
+                ${!s.is_deleted ? `<button class="danger" onclick="delSource(${s.id})" style="font-size:11px;padding:3px 8px;">${t('deleteSource')}</button>` : ''}
+              </div>
+            </div>`;
           }
+          html += `</div>`;
+          html += `<div class="sources-pagination">
+            <div>${lang === 'zh' ? '第' : 'Page'} ${sourcesPage} / ${pageCount}</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="sourcesPage=Math.max(1, sourcesPage-1); renderSources(true)" ${sourcesPage <= 1 ? 'disabled' : ''}>${t('sourcesPagePrev')}</button>
+              <button onclick="sourcesPage=Math.min(${pageCount}, sourcesPage+1); renderSources(true)" ${sourcesPage >= pageCount ? 'disabled' : ''}>${t('sourcesPageNext')}</button>
+            </div>
+          </div>`;
         }
 
-        html += `<div id="smartAddContainer" style="margin-top:20px;"></div>`;
-        html += `<div id="sourceFormContainer"></div>`;
+        html += `<div id="smartAddContainer" style="margin-top:16px;${showSourceForm ? '' : 'display:none;'}"></div>`;
+        html += `<div id="sourceFormContainer" style="${showSourceForm ? '' : 'display:none;'}"></div>`;
 
         list.innerHTML = html;
-        renderSmartAdd();
-        if (showSourceForm) renderSourceForm();
-
-        // Restore Focus
-        if (activeSearchId) {
-          const el = document.getElementById(activeSearchId);
-          if (el) {
-            el.focus();
-            if (selectionStart !== null) el.setSelectionRange(selectionStart, selectionStart);
-          }
+        if (showSourceForm) {
+          renderSmartAdd();
+          renderSourceForm();
         }
       } catch (e) {
         list.innerHTML = `<div class="empty">Failed to load sources: ${esc(e.message)}</div>`;
@@ -1948,7 +2223,7 @@
         const r = await fetch(`${API}/sources/${id}`, { credentials: 'same-origin' });
         editingSource = await r.json();
         showSourceForm = true;
-        renderSourceForm();
+        renderSources(true);
         setTimeout(() => document.getElementById('sourceFormContainer')?.scrollIntoView({ behavior: 'smooth' }), 100);
       } catch { }
     }
@@ -2156,7 +2431,7 @@
 
     if (location.hash) {
       const h = location.hash.substring(1);
-      if (['4h', 'daily', 'weekly', 'monthly', 'marks', 'sources'].includes(h)) {
+      if (['4h', 'daily', 'weekly', 'monthly', 'items', 'marks', 'sources'].includes(h)) {
         currentType = h;
         document.querySelector('.tab.active')?.classList.remove('active');
         const t = document.querySelector('.tab[data-type="' + h + '"]');

@@ -1,16 +1,24 @@
 ---
 name: clawfeed
-description: 使用 192.168.2.21 上的 ClawFeed 系统，管理信息源、生成摘要、推送内容。
+description: 使用 ClawFeed 系统管理信息源、写入新闻条目（items）、生成摘要与查看结果。
 ---
 
 # ClawFeed 系统使用指南
 
-ClawFeed 部署在 `192.168.2.21:8767`，这是一个单用户本地部署的新闻聚合系统。你可以通过 API 与其交互，无需认证。
+ClawFeed 部署在 `192.168.2.21:8767`，是一个单用户新闻聚合系统。智能体主要负责抓取并提交新闻条目（items），系统负责存储与展示。
 
 ## 核心地址
 
 - **API 端点**: `http://192.168.2.21:8767/api`
 - **Web 界面**: `http://192.168.2.21:8767`
+
+## 智能体推荐流程（写入 items）
+
+1. **解析或创建信息源**
+2. **抓取内容并结构化为 items**
+3. **批量写入 items**
+4. **按需生成摘要（可选）**
+5. **用 Web 或 API 验证展示**
 
 ## 你能做什么
 
@@ -40,12 +48,56 @@ curl -X POST http://192.168.2.21:8767/api/sources \
 
 支持的类型：`rss`, `twitter_feed`, `twitter_list`, `reddit`, `hackernews`, `github_trending`, `digest_feed`, `website`
 
-### 3. 生成并推送摘要
+### 3. 写入新闻条目（items）
+
+按源批量写入（推荐）：
+
+```bash
+curl -X POST http://192.168.2.21:8767/api/sources/<source_id>/items \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "url": "https://example.com/news/1",
+        "title": "标题",
+        "summary": "摘要",
+        "tags": ["ai","demo"],
+        "published_at": "2026-03-13T08:00:00Z"
+      }
+    ]
+  }'
+```
+
+跨源批量写入：
+
+```bash
+curl -X POST http://192.168.2.21:8767/api/items/bulk \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {
+        "source_id": 1,
+        "url": "https://example.com/news/2",
+        "title": "标题2",
+        "summary": "摘要2"
+      }
+    ]
+  }'
+```
+
+### 4. 查询 items
+
+```bash
+curl "http://192.168.2.21:8767/api/items?limit=20&offset=0"
+curl "http://192.168.2.21:8767/api/sources/<source_id>/items?limit=20"
+```
+
+### 5. 生成并推送摘要（可选）
 
 **第一步：获取现有内容**
 
 ```bash
-curl "http://192.168.2.21:8767/api/digests?type=4h&limit=5"
+curl "http://192.168.2.21:8767/api/digests?type=4h&limit=20"
 ```
 
 类型可选：`4h`, `daily`, `weekly`, `monthly`
@@ -76,18 +128,20 @@ curl -X POST http://192.168.2.21:8767/api/marks \
 curl -X DELETE http://192.168.2.21:8767/api/marks/123
 ```
 
-### 5. 导出订阅源
+### 6. 导出订阅源
 
 ```bash
 curl http://192.168.2.21:8767/api/sources/export -o sources-backup.json
 ```
 
-### 6. 自动识别 URL 类型
+### 7. 自动识别 URL 类型
 
 不确定源类型时，让系统帮你识别：
 
 ```bash
-curl "http://192.168.2.21:8767/api/sources/resolve?url=https://twitter.com/username"
+curl -X POST http://192.168.2.21:8767/api/sources/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://twitter.com/username"}'
 ```
 
 ## 完整 API 列表
@@ -102,7 +156,11 @@ curl "http://192.168.2.21:8767/api/sources/resolve?url=https://twitter.com/usern
 | PUT | /api/sources/:id | 更新源 |
 | DELETE | /api/sources/:id | 删除源 |
 | GET | /api/sources/export | 导出所有源 |
-| GET | /api/sources/resolve | 识别 URL 类型 |
+| POST | /api/sources/resolve | 识别 URL 类型 |
+| POST | /api/sources/:id/items | 按源批量写入 items |
+| POST | /api/items/bulk | 跨源批量写入 items |
+| GET | /api/items | 查询 items |
+| GET | /api/sources/:id/items | 按源查询 items |
 | GET | /api/marks | 获取收藏 |
 | POST | /api/marks | 添加收藏 |
 | DELETE | /api/marks/:id | 删除收藏 |
@@ -111,8 +169,7 @@ curl "http://192.168.2.21:8767/api/sources/resolve?url=https://twitter.com/usern
 
 ## 使用建议
 
-1. **获取订阅列表** → 了解当前监控哪些源
-2. **分析现有摘要风格** → 保持输出格式一致
-3. **生成摘要** → 使用 Markdown 格式，包含清晰的标题和链接
-4. **推送摘要** → 通过 POST /api/digests 落库
-5. **验证结果** → 访问 Web 界面查看效果
+1. **优先写入 items** → 这是系统的核心数据层
+2. **按需生成摘要** → items 聚合后再写摘要
+3. **重复写入无副作用** → 系统按源+URL 去重
+4. **验证结果** → 使用 `/api/items` 与 Web 界面检查

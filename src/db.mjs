@@ -30,6 +30,7 @@ function ensureSchema(db) {
   runMigration(db, '003_sources.sql');
   runMigration(db, '004_feed.sql');
   runMigration(db, '007_soft_delete.sql');
+  runMigration(db, '010_source_items.sql');
 
   // Subscriptions: we use a simplified version without user_id
   db.exec(`
@@ -154,6 +155,93 @@ export function deleteSource(db, id) {
 
 export function getSourceByTypeConfig(db, type, config) {
   return db.prepare('SELECT * FROM sources WHERE type = ? AND config = ?').get(type, config);
+}
+
+// ── Source Items ──
+
+export function insertSourceItems(db, sourceId, items) {
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO source_items
+      (source_id, url, title, author, content, summary, tags, metadata, published_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const run = db.transaction((rows) => {
+    let added = 0;
+    let skipped = 0;
+    for (const it of rows) {
+      if (!it || !it.url) { skipped += 1; continue; }
+      const r = stmt.run(
+        sourceId,
+        it.url,
+        it.title || '',
+        it.author || '',
+        it.content || '',
+        it.summary || '',
+        it.tags || '[]',
+        it.metadata || '{}',
+        it.published_at || null
+      );
+      added += r.changes;
+    }
+    return { added, skipped, duplicates: Math.max(0, rows.length - added - skipped) };
+  });
+  return run(items);
+}
+
+export function listItems(db, {
+  sourceId,
+  sourceType,
+  q,
+  tag,
+  since,
+  until,
+  limit = 50,
+  offset = 0,
+} = {}) {
+  let sql = `
+    SELECT si.*, s.name as source_name, s.type as source_type
+    FROM source_items si
+    JOIN sources s ON si.source_id = s.id
+    WHERE s.is_deleted = 0
+  `;
+  const params = [];
+  if (sourceId) {
+    sql += ' AND si.source_id = ?';
+    params.push(sourceId);
+  }
+  if (sourceType) {
+    sql += ' AND s.type = ?';
+    params.push(sourceType);
+  }
+  if (q) {
+    sql += ' AND (si.title LIKE ? OR si.summary LIKE ? OR si.content LIKE ?)';
+    const like = `%${q}%`;
+    params.push(like, like, like);
+  }
+  if (tag) {
+    sql += ' AND si.tags LIKE ?';
+    params.push(`%${tag}%`);
+  }
+  if (since) {
+    sql += ' AND coalesce(si.published_at, si.fetched_at) >= ?';
+    params.push(since);
+  }
+  if (until) {
+    sql += ' AND coalesce(si.published_at, si.fetched_at) <= ?';
+    params.push(until);
+  }
+  sql += ' ORDER BY coalesce(si.published_at, si.fetched_at) DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+  return db.prepare(sql).all(...params);
+}
+
+export function updateSourceFetchStats(db, sourceId, added) {
+  return db.prepare(`
+    UPDATE sources
+    SET last_fetched_at = datetime('now'),
+        fetch_count = coalesce(fetch_count, 0) + ?
+    WHERE id = ?
+  `).run(added || 0, sourceId);
 }
 
 // ── Subscriptions (single-user, source-keyed) ──

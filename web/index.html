@@ -2183,7 +2183,7 @@
           }
           html += `</div>`;
           html += `<div class="sources-pagination">
-            <div>${lang === 'zh' ? '第' : 'Page'} ${sourcesPage} / ${pageCount}</div>
+            <div>${lang === 'zh' ? '第' : 'Page'} ${sourcesPage} / ${pageCount} · ${filteredSubs.length} ${lang === 'zh' ? '条结果' : 'results'}</div>
             <div style="display:flex;gap:8px;">
               <button onclick="sourcesPage=Math.max(1, sourcesPage-1); renderSources(true)" ${sourcesPage <= 1 ? 'disabled' : ''}>${t('sourcesPagePrev')}</button>
               <button onclick="sourcesPage=Math.min(${pageCount}, sourcesPage+1); renderSources(true)" ${sourcesPage >= pageCount ? 'disabled' : ''}>${t('sourcesPageNext')}</button>

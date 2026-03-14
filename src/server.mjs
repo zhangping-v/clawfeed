@@ -252,6 +252,65 @@ function normalizeItems(items) {
   return { items: normalized, skipped_detail: detail };
 }
 
+function parseSourceConfig(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try { return JSON.parse(raw); } catch { return {}; }
+}
+
+function buildCheckUrl(source) {
+  const cfg = parseSourceConfig(source.config);
+  switch (source.type) {
+    case 'rss':
+    case 'digest_feed':
+    case 'website':
+      return cfg.url || '';
+    case 'custom_api':
+      return cfg.endpoint || '';
+    case 'github_trending': {
+      const lang = (cfg.language || '').trim();
+      return lang ? `https://github.com/trending/${encodeURIComponent(lang)}` : 'https://github.com/trending';
+    }
+    case 'hackernews':
+      return 'https://news.ycombinator.com/';
+    case 'reddit': {
+      const sub = cfg.subreddit || '';
+      return sub ? `https://www.reddit.com/r/${sub}/.rss` : '';
+    }
+    default:
+      return '';
+  }
+}
+
+function isSkippableType(type) {
+  return type === 'twitter_feed' || type === 'twitter_list' || type === 'twitter';
+}
+
+async function fetchWithTimeout(url, ms = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'ClawFeed-Validator/1.0' } });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runPool(items, worker, size) {
+  const results = [];
+  let index = 0;
+  async function next() {
+    const i = index++;
+    if (i >= items.length) return;
+    results[i] = await worker(items[i]);
+    return next();
+  }
+  const workers = Array.from({ length: Math.min(size, items.length) }, () => next());
+  await Promise.all(workers);
+  return results;
+}
+
 const server = createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -582,6 +641,48 @@ const server = createServer(async (req, res) => {
       const sources = listSources(db, { activeOnly: false });
       const subs = new Set(listSubscriptions(db).map(s => s.id));
       return json(res, sources.map(s => ({ ...s, subscribed: subs.has(s.id) })));
+    }
+
+    if (req.method === 'POST' && path === '/api/sources/validate') {
+      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
+      let body = {};
+      try { body = await parseBody(req); } catch { body = {}; }
+      const limit = Math.max(1, parseInt(body.limit || '1000'));
+      const concurrency = Math.max(1, parseInt(body.concurrency || '6'));
+      const timeoutMs = Math.max(3000, parseInt(body.timeout_ms || '12000'));
+      const onlyTypes = Array.isArray(body.only_types) ? body.only_types : [];
+
+      let sources = listSources(db, { activeOnly: false });
+      if (onlyTypes.length) sources = sources.filter(s => onlyTypes.includes(s.type));
+      if (sources.length > limit) sources = sources.slice(0, limit);
+
+      const results = await runPool(sources, async (s) => {
+        if (isSkippableType(s.type)) return { id: s.id, skipped: true, reason: 'not_checkable' };
+        const url = buildCheckUrl(s);
+        if (!url) {
+          updateSourceFetchStats(db, s.id, 0, false, 'missing url');
+          return { id: s.id, ok: false, error: 'missing url' };
+        }
+        try {
+          const resp = await fetchWithTimeout(url, timeoutMs);
+          const ok = resp.status >= 200 && resp.status < 400;
+          updateSourceFetchStats(db, s.id, 0, ok, ok ? null : `http ${resp.status}`);
+          return { id: s.id, ok, status: resp.status };
+        } catch (e) {
+          const reason = e.name === 'AbortError' ? 'timeout' : (e.message || 'fetch failed');
+          updateSourceFetchStats(db, s.id, 0, false, reason);
+          return { id: s.id, ok: false, error: reason };
+        }
+      }, concurrency);
+
+      const summary = results.reduce((acc, r) => {
+        if (r.skipped) acc.skipped += 1;
+        else if (r.ok) acc.ok += 1;
+        else acc.fail += 1;
+        return acc;
+      }, { ok: 0, fail: 0, skipped: 0 });
+
+      return json(res, { ok: true, summary });
     }
 
     const sourceMatch = path.match(/^\/api\/sources\/(\d+)$/);

@@ -1330,11 +1330,18 @@
         sourcesStatusActive: '启用',
         sourcesStatusInactive: '停用',
         sourcesStatusDeleted: '已停用',
+        sourcesFetchAll: '全部抓取',
+        sourcesFetchOk: '抓取成功',
+        sourcesFetchFail: '抓取失败',
+        sourcesFetchUnknown: '未抓取',
         sourcesFetchOk: '成功',
         sourcesFetchFail: '失败',
         sourcesFetchUnknown: '未知',
         sourcesPagePrev: '上一页',
         sourcesPageNext: '下一页',
+        sourcesValidate: '快速检查',
+        sourcesValidateRun: '正在检查...',
+        sourcesValidateDone: (ok, fail, skipped) => `检查完成：✅${ok} ❌${fail} ⏭️${skipped}`,
         addSource: '➕ 添加源', editSource: '编辑', deleteSource: '删除',
         sourceName: '名称', sourceType: '类型', sourceConfig: '配置 (JSON)', sourcePublic: '公开',
         save: '保存', cancel: '取消',
@@ -1391,11 +1398,18 @@
         sourcesStatusActive: 'Active',
         sourcesStatusInactive: 'Inactive',
         sourcesStatusDeleted: 'Deleted',
+        sourcesFetchAll: 'All fetch',
+        sourcesFetchOk: 'Fetch ok',
+        sourcesFetchFail: 'Fetch failed',
+        sourcesFetchUnknown: 'Not fetched',
         sourcesFetchOk: 'OK',
         sourcesFetchFail: 'Failed',
         sourcesFetchUnknown: 'Unknown',
         sourcesPagePrev: 'Prev',
         sourcesPageNext: 'Next',
+        sourcesValidate: 'Quick Check',
+        sourcesValidateRun: 'Checking...',
+        sourcesValidateDone: (ok, fail, skipped) => `Done: ✅${ok} ❌${fail} ⏭️${skipped}`,
         addSource: '➕ Add Source', editSource: 'Edit', deleteSource: 'Delete',
         sourceName: 'Name', sourceType: 'Type', sourceConfig: 'Config (JSON)', sourcePublic: 'Public',
         save: 'Save', cancel: 'Cancel',
@@ -1524,6 +1538,7 @@
       sourceTypeFilter = 'all';
       sourceCategoryFilter = 'all';
       sourceStatusFilter = 'all';
+      sourceFetchFilter = 'all';
       renderSources();
       location.hash = 'sources';
     }
@@ -1559,6 +1574,7 @@
     let sourceTypeFilter = 'all';
     let sourceCategoryFilter = 'all';
     let sourceStatusFilter = 'all';
+    let sourceFetchFilter = 'all';
     let sourcesPage = 1;
     const SOURCES_PAGE_SIZE = 10;
 
@@ -2045,7 +2061,9 @@
           const matchCat = sourceCategoryFilter === 'all' || (s.category || '未分类') === sourceCategoryFilter;
           const status = s.is_deleted ? 'deleted' : (s.is_active ? 'active' : 'inactive');
           const matchStatus = sourceStatusFilter === 'all' || status === sourceStatusFilter;
-          return matchText && matchType && matchCat && matchStatus;
+          const fetchStatus = s.last_fetch_ok === 1 ? 'ok' : (s.last_fetch_ok === 0 ? 'fail' : 'unknown');
+          const matchFetch = sourceFetchFilter === 'all' || fetchStatus === sourceFetchFilter;
+          return matchText && matchType && matchCat && matchStatus && matchFetch;
         });
 
         const total = subscriptions.length;
@@ -2060,7 +2078,10 @@
           <h2 style="margin:0;font-size:16px;color:#e0e0e0;">📡 ${lang === 'zh' ? '信息源' : 'Sources'}
             <span style="font-size:12px;color:#666;font-weight:400;margin-left:8px;">${active}/${total} ${lang === 'zh' ? '活跃' : 'active'}</span>
           </h2>
-          <button onclick="showSourceForm=true;editingSource=null;renderSources(true)" style="padding:6px 14px;background:#1a3a1a;border:1px solid #40c040;border-radius:6px;color:#40c040;cursor:pointer;font-size:13px;">+ ${lang === 'zh' ? '添加源' : 'Add Source'}</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button onclick="runSourceValidation(this)" style="padding:6px 14px;background:#2a2a2a;border:1px solid #444;border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;">${t('sourcesValidate')}</button>
+            <button onclick="showSourceForm=true;editingSource=null;renderSources(true)" style="padding:6px 14px;background:#1a3a1a;border:1px solid #40c040;border-radius:6px;color:#40c040;cursor:pointer;font-size:13px;">+ ${lang === 'zh' ? '添加源' : 'Add Source'}</button>
+          </div>
         </div>`;
 
         const availableCats = [...new Set(subscriptions.map(s => s.category || '未分类'))];
@@ -2081,6 +2102,12 @@
             <option value="active" ${sourceStatusFilter === 'active' ? 'selected' : ''}>${t('sourcesStatusActive')}</option>
             <option value="inactive" ${sourceStatusFilter === 'inactive' ? 'selected' : ''}>${t('sourcesStatusInactive')}</option>
             <option value="deleted" ${sourceStatusFilter === 'deleted' ? 'selected' : ''}>${t('sourcesStatusDeleted')}</option>
+          </select>
+          <select class="source-search-select" onchange="sourceFetchFilter=this.value; sourcesPage=1; renderSources(true)">
+            <option value="all">${t('sourcesFetchAll')}</option>
+            <option value="ok" ${sourceFetchFilter === 'ok' ? 'selected' : ''}>${t('sourcesFetchOk')}</option>
+            <option value="fail" ${sourceFetchFilter === 'fail' ? 'selected' : ''}>${t('sourcesFetchFail')}</option>
+            <option value="unknown" ${sourceFetchFilter === 'unknown' ? 'selected' : ''}>${t('sourcesFetchUnknown')}</option>
           </select>
         </div>`;
 
@@ -2158,6 +2185,35 @@
       } catch (e) {
         list.innerHTML = `<div class="empty">Failed to load sources: ${esc(e.message)}</div>`;
         console.error(e);
+      }
+    }
+
+    async function runSourceValidation(btn) {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = t('sourcesValidateRun');
+      }
+      try {
+        const r = await fetch(`${API}/sources/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ limit: 1000, concurrency: 6, timeout_ms: 12000 })
+        });
+        const d = await r.json();
+        if (d.ok && d.summary) {
+          showToast(t('sourcesValidateDone')(d.summary.ok, d.summary.fail, d.summary.skipped));
+          renderSources(true);
+        } else {
+          showToast(d.error || t('loadFail'));
+        }
+      } catch (e) {
+        showToast(e.message || t('loadFail'));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = t('sourcesValidate');
+        }
       }
     }
 

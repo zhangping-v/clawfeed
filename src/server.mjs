@@ -685,6 +685,26 @@ const server = createServer(async (req, res) => {
       return json(res, { ok: true, summary });
     }
 
+    if (req.method === 'POST' && path === '/api/sources/disable-failed') {
+      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
+      const result = db.prepare(`
+        UPDATE sources
+        SET is_active = 0
+        WHERE is_deleted = 0 AND last_fetch_ok = 0
+      `).run();
+      return json(res, { ok: true, disabled: result.changes });
+    }
+
+    if (req.method === 'POST' && path === '/api/sources/delete-inactive') {
+      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
+      const result = db.prepare(`
+        UPDATE sources
+        SET is_deleted = 1, deleted_at = datetime('now')
+        WHERE is_deleted = 0 AND is_active = 0
+      `).run();
+      return json(res, { ok: true, deleted: result.changes });
+    }
+
     const sourceMatch = path.match(/^\/api\/sources\/(\d+)$/);
     if (req.method === 'GET' && sourceMatch) {
       const s = getSource(db, parseInt(sourceMatch[1]));

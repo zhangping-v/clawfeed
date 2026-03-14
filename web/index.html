@@ -1342,6 +1342,10 @@
         sourcesValidate: '快速检查',
         sourcesValidateRun: '正在检查...',
         sourcesValidateDone: (ok, fail, skipped) => `检查完成：✅${ok} ❌${fail} ⏭️${skipped}`,
+        sourcesDisableFailed: '禁用抓取失败',
+        sourcesDisableFailedDone: (n) => `已禁用 ${n} 个`,
+        sourcesDeleteInactive: '删除停用源',
+        sourcesDeleteInactiveDone: (n) => `已删除 ${n} 个`,
         addSource: '➕ 添加源', editSource: '编辑', deleteSource: '删除',
         sourceName: '名称', sourceType: '类型', sourceConfig: '配置 (JSON)', sourcePublic: '公开',
         save: '保存', cancel: '取消',
@@ -1410,6 +1414,10 @@
         sourcesValidate: 'Quick Check',
         sourcesValidateRun: 'Checking...',
         sourcesValidateDone: (ok, fail, skipped) => `Done: ✅${ok} ❌${fail} ⏭️${skipped}`,
+        sourcesDisableFailed: 'Disable Failed',
+        sourcesDisableFailedDone: (n) => `Disabled ${n}`,
+        sourcesDeleteInactive: 'Delete Inactive',
+        sourcesDeleteInactiveDone: (n) => `Deleted ${n}`,
         addSource: '➕ Add Source', editSource: 'Edit', deleteSource: 'Delete',
         sourceName: 'Name', sourceType: 'Type', sourceConfig: 'Config (JSON)', sourcePublic: 'Public',
         save: 'Save', cancel: 'Cancel',
@@ -2080,6 +2088,8 @@
           </h2>
           <div style="display:flex;gap:8px;align-items:center;">
             <button onclick="runSourceValidation(this)" style="padding:6px 14px;background:#2a2a2a;border:1px solid #444;border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;">${t('sourcesValidate')}</button>
+            <button onclick="disableFailedSources(this)" style="padding:6px 14px;background:#2a2a2a;border:1px solid #444;border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;">${t('sourcesDisableFailed')}</button>
+            <button onclick="deleteInactiveSources(this)" style="padding:6px 14px;background:#2a2a2a;border:1px solid #444;border-radius:6px;color:#aaa;cursor:pointer;font-size:13px;">${t('sourcesDeleteInactive')}</button>
             <button onclick="showSourceForm=true;editingSource=null;renderSources(true)" style="padding:6px 14px;background:#1a3a1a;border:1px solid #40c040;border-radius:6px;color:#40c040;cursor:pointer;font-size:13px;">+ ${lang === 'zh' ? '添加源' : 'Add Source'}</button>
           </div>
         </div>`;
@@ -2214,6 +2224,44 @@
           btn.disabled = false;
           btn.textContent = t('sourcesValidate');
         }
+      }
+    }
+
+    async function disableFailedSources(btn) {
+      if (!confirm(lang === 'zh' ? '确定禁用所有抓取失败的源？' : 'Disable all failed sources?')) return;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch(`${API}/sources/disable-failed`, { method: 'POST', credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.ok) {
+          showToast(t('sourcesDisableFailedDone')(d.disabled || 0));
+          renderSources(true);
+        } else {
+          showToast(d.error || t('loadFail'));
+        }
+      } catch (e) {
+        showToast(e.message || t('loadFail'));
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function deleteInactiveSources(btn) {
+      if (!confirm(lang === 'zh' ? '确定删除所有停用源？' : 'Delete all inactive sources?')) return;
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch(`${API}/sources/delete-inactive`, { method: 'POST', credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.ok) {
+          showToast(t('sourcesDeleteInactiveDone')(d.deleted || 0));
+          renderSources(true);
+        } else {
+          showToast(d.error || t('loadFail'));
+        }
+      } catch (e) {
+        showToast(e.message || t('loadFail'));
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 

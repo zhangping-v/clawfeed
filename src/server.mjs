@@ -213,29 +213,43 @@ async function resolveSourceUrl(url) {
 }
 
 function normalizeItemPayload(item) {
-  if (!item || !item.url) return null;
+  if (!item || item.url === undefined || item.url === null) return { ok: false, reason: 'missing_url' };
+  const url = String(item.url).trim();
+  if (!url) return { ok: false, reason: 'missing_url' };
+  if (!(url.startsWith('http://') || url.startsWith('https://'))) {
+    return { ok: false, reason: 'invalid_url' };
+  }
   const tags = Array.isArray(item.tags) ? item.tags : (item.tags ? [item.tags] : []);
   const metadata = item.metadata && typeof item.metadata === 'object' ? item.metadata : (item.metadata || {});
   return {
-    url: String(item.url).trim(),
-    title: (item.title || '').toString(),
-    author: (item.author || '').toString(),
-    content: (item.content || '').toString(),
-    summary: (item.summary || '').toString(),
-    tags: JSON.stringify(tags),
-    metadata: JSON.stringify(metadata),
-    published_at: item.published_at ? String(item.published_at) : null,
+    ok: true,
+    value: {
+      url,
+      title: (item.title || '').toString(),
+      author: (item.author || '').toString(),
+      content: (item.content || '').toString(),
+      summary: (item.summary || '').toString(),
+      tags: JSON.stringify(tags),
+      metadata: JSON.stringify(metadata),
+      published_at: item.published_at ? String(item.published_at) : null,
+    }
   };
 }
 
 function normalizeItems(items) {
-  if (!Array.isArray(items)) return [];
+  const detail = { missing_url: 0, invalid_url: 0 };
+  if (!Array.isArray(items)) return { items: [], skipped_detail: detail };
   const normalized = [];
   for (const it of items) {
-    const n = normalizeItemPayload(it);
-    if (n && n.url) normalized.push(n);
+    const res = normalizeItemPayload(it);
+    if (!res.ok) {
+      if (res.reason === 'missing_url') detail.missing_url += 1;
+      if (res.reason === 'invalid_url') detail.invalid_url += 1;
+      continue;
+    }
+    normalized.push(res.value);
   }
-  return normalized;
+  return { items: normalized, skipped_detail: detail };
 }
 
 const server = createServer(async (req, res) => {
@@ -401,21 +415,72 @@ const server = createServer(async (req, res) => {
     // ── Items endpoints ──
     const sourceItemsMatch = path.match(/^\/api\/sources\/(\d+)\/items$/);
     if (req.method === 'POST' && sourceItemsMatch) {
-      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
       const sourceId = parseInt(sourceItemsMatch[1]);
       const source = getSource(db, sourceId);
-      if (!source) return json(res, { error: 'source not found' }, 404);
-      const body = await parseBody(req);
-      const items = normalizeItems(body.items);
-      if (!items.length) return json(res, { error: 'items array required' }, 400);
-      const result = insertSourceItems(db, sourceId, items);
-      updateSourceFetchStats(db, sourceId, result.added);
-      return json(res, { ok: true, ...result });
+      if (!source) {
+        try { updateSourceFetchStats(db, sourceId, 0, false, 'source not found'); } catch { }
+        return json(res, { error: 'source not found' }, 404);
+      }
+      if (!checkApiAccess(req)) {
+        updateSourceFetchStats(db, sourceId, 0, false, 'invalid api key or permission denied');
+        return json(res, { error: 'invalid api key or permission denied' }, 401);
+      }
+      let body;
+      try {
+        body = await parseBody(req);
+      } catch (e) {
+        updateSourceFetchStats(db, sourceId, 0, false, e.message || 'invalid json');
+        return json(res, { error: 'invalid json' }, 400);
+      }
+      const { items, skipped_detail } = normalizeItems(body.items);
+      if (!items.length) {
+        const detail = `missing_url=${skipped_detail.missing_url}, invalid_url=${skipped_detail.invalid_url}`;
+        updateSourceFetchStats(db, sourceId, 0, false, `items array required (${detail})`);
+        return json(res, { error: 'items array required' }, 400);
+      }
+      try {
+        const result = insertSourceItems(db, sourceId, items);
+        const ok = result.added > 0;
+        let reason = null;
+        if (!ok) {
+          if (result.duplicates > 0 && result.skipped === 0) reason = 'all duplicates';
+          else if (result.skipped > 0 && result.duplicates === 0) {
+            reason = `all skipped (missing_url=${skipped_detail.missing_url}, invalid_url=${skipped_detail.invalid_url})`;
+          } else if (result.skipped > 0 && result.duplicates > 0) {
+            reason = `all duplicates or skipped (missing_url=${skipped_detail.missing_url}, invalid_url=${skipped_detail.invalid_url})`;
+          }
+          else reason = 'no new items';
+        }
+        updateSourceFetchStats(db, sourceId, result.added, ok, reason);
+        return json(res, { ok: true, ...result, skipped_detail });
+      } catch (e) {
+        updateSourceFetchStats(db, sourceId, 0, false, e.message || 'insert failed');
+        return json(res, { error: e.message || 'insert failed' }, 500);
+      }
     }
 
     if (req.method === 'POST' && path === '/api/items/bulk') {
-      if (!checkApiAccess(req)) return json(res, { error: 'invalid api key or permission denied' }, 401);
-      const body = await parseBody(req);
+      const authorized = checkApiAccess(req);
+      let body;
+      try {
+        body = await parseBody(req);
+      } catch (e) {
+        if (!authorized) return json(res, { error: 'invalid api key or permission denied' }, 401);
+        return json(res, { error: 'invalid json' }, 400);
+      }
+      if (!authorized) {
+        if (Array.isArray(body.items)) {
+          const sourceIds = new Set();
+          for (const raw of body.items) {
+            if (raw && raw.source_id) sourceIds.add(parseInt(raw.source_id));
+          }
+          for (const sid of sourceIds) {
+            const source = getSource(db, sid);
+            if (source) updateSourceFetchStats(db, sid, 0, false, 'invalid api key or permission denied');
+          }
+        }
+        return json(res, { error: 'invalid api key or permission denied' }, 401);
+      }
       if (!Array.isArray(body.items) || !body.items.length) {
         return json(res, { error: 'items array required' }, 400);
       }
@@ -428,21 +493,39 @@ const server = createServer(async (req, res) => {
       }
       for (const sid of bySource.keys()) {
         const source = getSource(db, sid);
-        if (!source) return json(res, { error: `source not found: ${sid}` }, 404);
+        if (!source) {
+          try { updateSourceFetchStats(db, sid, 0, false, `source not found: ${sid}`); } catch { }
+          return json(res, { error: `source not found: ${sid}` }, 404);
+        }
       }
       let added = 0;
       let duplicates = 0;
       let skipped = 0;
+      const skipped_detail = { missing_url: 0, invalid_url: 0 };
       for (const [sid, itemsRaw] of bySource.entries()) {
-        const items = normalizeItems(itemsRaw);
+        const normalized = normalizeItems(itemsRaw);
+        const items = normalized.items;
+        skipped_detail.missing_url += normalized.skipped_detail.missing_url;
+        skipped_detail.invalid_url += normalized.skipped_detail.invalid_url;
         if (!items.length) continue;
         const result = insertSourceItems(db, sid, items);
-        updateSourceFetchStats(db, sid, result.added);
+        const ok = result.added > 0;
+        let reason = null;
+        if (!ok) {
+          if (result.duplicates > 0 && result.skipped === 0) reason = 'all duplicates';
+          else if (result.skipped > 0 && result.duplicates === 0) {
+            reason = `all skipped (missing_url=${normalized.skipped_detail.missing_url}, invalid_url=${normalized.skipped_detail.invalid_url})`;
+          } else if (result.skipped > 0 && result.duplicates > 0) {
+            reason = `all duplicates or skipped (missing_url=${normalized.skipped_detail.missing_url}, invalid_url=${normalized.skipped_detail.invalid_url})`;
+          }
+          else reason = 'no new items';
+        }
+        updateSourceFetchStats(db, sid, result.added, ok, reason);
         added += result.added;
         duplicates += result.duplicates;
         skipped += result.skipped;
       }
-      return json(res, { ok: true, added, duplicates, skipped });
+      return json(res, { ok: true, added, duplicates, skipped, skipped_detail });
     }
 
     if (req.method === 'GET' && path === '/api/items') {

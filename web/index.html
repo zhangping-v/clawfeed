@@ -907,20 +907,32 @@
       white-space: nowrap;
     }
 
-    .sources-cell.type {
-      flex: 0 0 120px;
+    .sources-cell.name {
+      flex: 0 0 180px;
     }
 
-    .sources-cell.status {
-      flex: 0 0 110px;
+    .sources-cell.url {
+      flex: 1 1 320px;
+      color: #888;
+    }
+
+    .sources-cell.type {
+      flex: 0 0 90px;
     }
 
     .sources-cell.time {
-      flex: 0 0 160px;
+      flex: 0 0 120px;
+    }
+
+    .sources-cell.reason {
+      flex: 0 0 140px;
+      color: #777;
+      white-space: normal;
+      line-height: 1.4;
     }
 
     .sources-cell.actions {
-      flex: 0 0 180px;
+      flex: 0 0 150px;
       display: flex;
       gap: 6px;
       justify-content: flex-end;
@@ -1314,6 +1326,13 @@
         sourcesSearchPlaceholder: '搜索名称...',
         sourcesTypeAll: '全部类型',
         sourcesCatAll: '全部分类',
+        sourcesStatusAll: '全部状态',
+        sourcesStatusActive: '启用',
+        sourcesStatusInactive: '停用',
+        sourcesStatusDeleted: '已停用',
+        sourcesFetchOk: '成功',
+        sourcesFetchFail: '失败',
+        sourcesFetchUnknown: '未知',
         sourcesPagePrev: '上一页',
         sourcesPageNext: '下一页',
         addSource: '➕ 添加源', editSource: '编辑', deleteSource: '删除',
@@ -1368,6 +1387,13 @@
         sourcesSearchPlaceholder: 'Search name...',
         sourcesTypeAll: 'All types',
         sourcesCatAll: 'All categories',
+        sourcesStatusAll: 'All status',
+        sourcesStatusActive: 'Active',
+        sourcesStatusInactive: 'Inactive',
+        sourcesStatusDeleted: 'Deleted',
+        sourcesFetchOk: 'OK',
+        sourcesFetchFail: 'Failed',
+        sourcesFetchUnknown: 'Unknown',
         sourcesPagePrev: 'Prev',
         sourcesPageNext: 'Next',
         addSource: '➕ Add Source', editSource: 'Edit', deleteSource: 'Delete',
@@ -1497,6 +1523,7 @@
       sourceSearchText = '';
       sourceTypeFilter = 'all';
       sourceCategoryFilter = 'all';
+      sourceStatusFilter = 'all';
       renderSources();
       location.hash = 'sources';
     }
@@ -1531,6 +1558,7 @@
     let sourceSearchText = '';
     let sourceTypeFilter = 'all';
     let sourceCategoryFilter = 'all';
+    let sourceStatusFilter = 'all';
     let sourcesPage = 1;
     const SOURCES_PAGE_SIZE = 10;
 
@@ -1997,6 +2025,10 @@
       if (!skipFetch) {
         list.innerHTML = `<div class="loading">${t('loading')}</div>`;
       }
+      const activeEl = document.activeElement;
+      const activeId = activeEl && activeEl.id ? activeEl.id : null;
+      const selectionStart = activeEl && activeEl.tagName === 'INPUT' ? activeEl.selectionStart : null;
+      const selectionEnd = activeEl && activeEl.tagName === 'INPUT' ? activeEl.selectionEnd : null;
       try {
         let subscriptions;
         if (!skipFetch || !lastSubscriptions.length) {
@@ -2011,7 +2043,9 @@
           const matchText = !sourceSearchText || (s.name || '').toLowerCase().includes(sourceSearchText.toLowerCase());
           const matchType = sourceTypeFilter === 'all' || s.type === sourceTypeFilter;
           const matchCat = sourceCategoryFilter === 'all' || (s.category || '未分类') === sourceCategoryFilter;
-          return matchText && matchType && matchCat;
+          const status = s.is_deleted ? 'deleted' : (s.is_active ? 'active' : 'inactive');
+          const matchStatus = sourceStatusFilter === 'all' || status === sourceStatusFilter;
+          return matchText && matchType && matchCat && matchStatus;
         });
 
         const total = subscriptions.length;
@@ -2042,6 +2076,12 @@
             <option value="all">${t('sourcesCatAll')}</option>
             ${catOptions}
           </select>
+          <select class="source-search-select" onchange="sourceStatusFilter=this.value; sourcesPage=1; renderSources(true)">
+            <option value="all">${t('sourcesStatusAll')}</option>
+            <option value="active" ${sourceStatusFilter === 'active' ? 'selected' : ''}>${t('sourcesStatusActive')}</option>
+            <option value="inactive" ${sourceStatusFilter === 'inactive' ? 'selected' : ''}>${t('sourcesStatusInactive')}</option>
+            <option value="deleted" ${sourceStatusFilter === 'deleted' ? 'selected' : ''}>${t('sourcesStatusDeleted')}</option>
+          </select>
         </div>`;
 
         if (!subscriptions.length) {
@@ -2056,22 +2096,31 @@
         } else {
           html += `<div class="sources-table">
             <div class="sources-row header">
-              <div class="sources-cell">${lang === 'zh' ? '名称' : 'Name'}</div>
+              <div class="sources-cell name">${lang === 'zh' ? '名称' : 'Name'}</div>
+              <div class="sources-cell url">${lang === 'zh' ? 'URL' : 'URL'}</div>
               <div class="sources-cell type">${lang === 'zh' ? '类型' : 'Type'}</div>
-              <div class="sources-cell status">${lang === 'zh' ? '状态' : 'Status'}</div>
               <div class="sources-cell time">${t('lastFetched')}</div>
+              <div class="sources-cell reason">${lang === 'zh' ? '失败原因' : 'Failure reason'}</div>
               <div class="sources-cell actions">${lang === 'zh' ? '操作' : 'Actions'}</div>
             </div>
           `;
           for (const s of pageItems) {
             const icon = SOURCE_ICONS[s.type] || '📦';
             const lastFetch = s.last_fetched_at ? s.last_fetched_at.slice(0, 16).replace('T', ' ') : t('never');
+            const fetchStatus = s.last_fetch_ok === 1 ? 'ok' : (s.last_fetch_ok === 0 ? 'fail' : 'unknown');
+            const fetchLabel = fetchStatus === 'ok' ? t('sourcesFetchOk') : (fetchStatus === 'fail' ? t('sourcesFetchFail') : t('sourcesFetchUnknown'));
             const statusText = s.is_deleted ? (lang === 'zh' ? '已停用' : 'Deleted') : (s.is_active ? (lang === 'zh' ? '启用' : 'Active') : (lang === 'zh' ? '停用' : 'Inactive'));
+            let sourceUrl = '';
+            try {
+              const cfg = typeof s.config === 'string' ? JSON.parse(s.config || '{}') : (s.config || {});
+              sourceUrl = cfg.url || cfg.endpoint || cfg.list_url || '';
+            } catch { sourceUrl = ''; }
             html += `<div class="sources-row ${s.is_deleted ? 'deleted' : ''}">
-              <div class="sources-cell">${icon} ${esc(s.name)}</div>
+              <div class="sources-cell name">${icon} ${esc(s.name)}</div>
+              <div class="sources-cell url" title="${esc(sourceUrl)}">${esc(sourceUrl || '')}</div>
               <div class="sources-cell type">${esc(s.type)}</div>
-              <div class="sources-cell status">${statusText}</div>
               <div class="sources-cell time">${lastFetch}</div>
+              <div class="sources-cell reason">${s.last_fetch_error ? esc(s.last_fetch_error) : ''}</div>
               <div class="sources-cell actions">
                 ${!s.is_deleted ? `<label class="toggle-switch" title="Active"><input type="checkbox" ${s.is_active ? 'checked' : ''} onchange="toggleSource(${s.id}, this.checked)"><span class="toggle-slider"></span></label>` : ''}
                 ${!s.is_deleted ? `<button onclick="editSourceForm(${s.id})" style="font-size:11px;padding:3px 8px;">${t('editSource')}</button>` : ''}
@@ -2093,6 +2142,15 @@
         html += `<div id="sourceFormContainer" style="${showSourceForm ? '' : 'display:none;'}"></div>`;
 
         list.innerHTML = html;
+        if (activeId) {
+          const el = document.getElementById(activeId);
+          if (el) {
+            el.focus();
+            if (selectionStart !== null && selectionEnd !== null) {
+              el.setSelectionRange(selectionStart, selectionEnd);
+            }
+          }
+        }
         if (showSourceForm) {
           renderSmartAdd();
           renderSourceForm();

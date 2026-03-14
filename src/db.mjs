@@ -31,6 +31,7 @@ function ensureSchema(db) {
   runMigration(db, '004_feed.sql');
   runMigration(db, '007_soft_delete.sql');
   runMigration(db, '010_source_items.sql');
+  runMigration(db, '011_source_fetch_status.sql');
 
   // Subscriptions: we use a simplified version without user_id
   db.exec(`
@@ -168,6 +169,7 @@ export function insertSourceItems(db, sourceId, items) {
   const run = db.transaction((rows) => {
     let added = 0;
     let skipped = 0;
+    let duplicates = 0;
     for (const it of rows) {
       if (!it || !it.url) { skipped += 1; continue; }
       const r = stmt.run(
@@ -183,7 +185,8 @@ export function insertSourceItems(db, sourceId, items) {
       );
       added += r.changes;
     }
-    return { added, skipped, duplicates: Math.max(0, rows.length - added - skipped) };
+    duplicates = Math.max(0, rows.length - added - skipped);
+    return { added, skipped, duplicates };
   });
   return run(items);
 }
@@ -235,14 +238,17 @@ export function listItems(db, {
   return db.prepare(sql).all(...params);
 }
 
-export function updateSourceFetchStats(db, sourceId, added) {
+export function updateSourceFetchStats(db, sourceId, added, ok = true, error = null) {
   return db.prepare(`
     UPDATE sources
     SET last_fetched_at = datetime('now'),
-        fetch_count = coalesce(fetch_count, 0) + ?
+        fetch_count = coalesce(fetch_count, 0) + ?,
+        last_fetch_ok = ?,
+        last_fetch_error = ?
     WHERE id = ?
-  `).run(added || 0, sourceId);
+  `).run(added || 0, ok ? 1 : 0, ok ? null : (error || null), sourceId);
 }
+
 
 // ── Subscriptions (single-user, source-keyed) ──
 

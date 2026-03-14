@@ -1578,6 +1578,7 @@
     let allLoaded = false;
     let lastSubscriptions = [];
     let allSourcesList = [];
+    let lastSourcesList = [];
     let sourceSearchText = '';
     let sourceTypeFilter = 'all';
     let sourceCategoryFilter = 'all';
@@ -2066,7 +2067,26 @@
           subscriptions = lastSubscriptions;
         }
 
-        const filteredSubs = subscriptions.filter(s => {
+        let sources;
+        if (!skipFetch || !lastSourcesList.length) {
+          const srcResp = await fetch(`${API}/sources`);
+          sources = await srcResp.json();
+          lastSourcesList = sources;
+        } else {
+          sources = lastSourcesList;
+        }
+
+        const subMap = new Map(subscriptions.map(s => [s.id, s]));
+        const mergedSources = sources.map(s => {
+          const sub = subMap.get(s.id);
+          return {
+            ...s,
+            category: sub?.category || '未分类',
+            subcategory: sub?.subcategory || '',
+          };
+        });
+
+        const filteredSubs = mergedSources.filter(s => {
           let sourceUrl = '';
           try {
             const cfg = typeof s.config === 'string' ? JSON.parse(s.config || '{}') : (s.config || {});
@@ -2090,8 +2110,8 @@
           return matchText && matchType && matchCat && matchStatus && matchFetch;
         });
 
-        const total = subscriptions.length;
-        const active = subscriptions.filter(s => s.is_active && !s.is_deleted).length;
+        const total = mergedSources.length;
+        const active = mergedSources.filter(s => s.is_active && !s.is_deleted).length;
         const pageCount = Math.max(1, Math.ceil(filteredSubs.length / SOURCES_PAGE_SIZE));
         if (sourcesPage > pageCount) sourcesPage = pageCount;
         if (sourcesPage < 1) sourcesPage = 1;
@@ -2110,7 +2130,7 @@
           </div>
         </div>`;
 
-        const availableCats = [...new Set(subscriptions.map(s => s.category || '未分类'))];
+        const availableCats = [...new Set(mergedSources.map(s => s.category || '未分类'))];
         const catOptions = availableCats.map(c => `<option value="${esc(c)}" ${sourceCategoryFilter === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
         html += `<div class="source-search-container" style="margin-bottom:12px;">
           <input type="text" id="sourceSearchInput" class="source-search-input" placeholder="${t('sourcesSearchPlaceholder')}"

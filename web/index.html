@@ -1583,6 +1583,9 @@
     let sourceCategoryFilter = 'all';
     let sourceStatusFilter = 'all';
     let sourceFetchFilter = 'all';
+    let sourceSearchTimer = null;
+    let sourceSearchComposing = false;
+    let lastSourceSearchText = '';
     let sourcesPage = 1;
     const SOURCES_PAGE_SIZE = 10;
 
@@ -2064,7 +2067,20 @@
         }
 
         const filteredSubs = subscriptions.filter(s => {
-          const matchText = !sourceSearchText || (s.name || '').toLowerCase().includes(sourceSearchText.toLowerCase());
+          let sourceUrl = '';
+          try {
+            const cfg = typeof s.config === 'string' ? JSON.parse(s.config || '{}') : (s.config || {});
+            sourceUrl = cfg.url || cfg.endpoint || cfg.list_url || '';
+          } catch { sourceUrl = ''; }
+          const rawSearch = (sourceSearchText || '').trim();
+          const searchText = rawSearch.toLowerCase();
+          const name = s.name || '';
+          const url = sourceUrl || '';
+          const matchText = !rawSearch ||
+            name.includes(rawSearch) ||
+            url.includes(rawSearch) ||
+            name.toLowerCase().includes(searchText) ||
+            url.toLowerCase().includes(searchText);
           const matchType = sourceTypeFilter === 'all' || s.type === sourceTypeFilter;
           const matchCat = sourceCategoryFilter === 'all' || (s.category || '未分类') === sourceCategoryFilter;
           const status = s.is_deleted ? 'deleted' : (s.is_active ? 'active' : 'inactive');
@@ -2098,7 +2114,7 @@
         const catOptions = availableCats.map(c => `<option value="${esc(c)}" ${sourceCategoryFilter === c ? 'selected' : ''}>${esc(c)}</option>`).join('');
         html += `<div class="source-search-container" style="margin-bottom:12px;">
           <input type="text" id="sourceSearchInput" class="source-search-input" placeholder="${t('sourcesSearchPlaceholder')}"
-            value="${esc(sourceSearchText)}" oninput="sourceSearchText=this.value; sourcesPage=1; renderSources(true)">
+            value="${esc(sourceSearchText)}" oninput="onSourceSearchInput(event)" onkeyup="onSourceSearchKeyup(event)" oncompositionstart="onSourceSearchCompositionStart()" oncompositionend="onSourceSearchCompositionEnd(event)">
           <select class="source-search-select" onchange="sourceTypeFilter=this.value; sourcesPage=1; renderSources(true)">
             <option value="all">${t('sourcesTypeAll')}</option>
             ${SOURCE_TYPES.map(type => `<option value="${type}" ${sourceTypeFilter === type ? 'selected' : ''}>${type}</option>`).join('')}
@@ -2225,6 +2241,42 @@
           btn.textContent = t('sourcesValidate');
         }
       }
+    }
+
+    function onSourceSearchInput(e) {
+      sourceSearchText = e.target.value;
+      sourcesPage = 1;
+      const isComposing = sourceSearchComposing || e.isComposing || e.inputType === 'insertCompositionText';
+      if (isComposing) return;
+      // Actual render is triggered on keyup/compositionend to avoid IME glitches.
+    }
+
+    function onSourceSearchCompositionStart() {
+      sourceSearchComposing = true;
+    }
+
+    function onSourceSearchCompositionEnd(e) {
+      sourceSearchComposing = false;
+      sourceSearchText = e.target.value;
+      sourcesPage = 1;
+      if (sourceSearchTimer) clearTimeout(sourceSearchTimer);
+      sourceSearchTimer = setTimeout(() => {
+        lastSourceSearchText = sourceSearchText;
+        renderSources(true);
+      }, 0);
+    }
+
+    function onSourceSearchKeyup(e) {
+      if (sourceSearchComposing || e.isComposing) return;
+      const next = e.target.value;
+      if (next === lastSourceSearchText) return;
+      sourceSearchText = next;
+      sourcesPage = 1;
+      if (sourceSearchTimer) clearTimeout(sourceSearchTimer);
+      sourceSearchTimer = setTimeout(() => {
+        lastSourceSearchText = sourceSearchText;
+        renderSources(true);
+      }, 200);
     }
 
     async function disableFailedSources(btn) {

@@ -20,6 +20,11 @@ ClawFeed 部署在 `192.168.2.21:8767`，是一个单用户新闻聚合系统。
 4. **按需生成摘要（可选）**
 5. **用 Web 或 API 验证展示**
 
+**抓取状态自动记录**
+- `/api/sources/:id/items` 会自动记录抓取成功/失败
+- 失败原因写入 `last_fetch_error`
+- 即使 `added=0` 也会记录失败原因（如全是重复或全被跳过）
+
 ## 你能做什么
 
 ### 1. 查看订阅源
@@ -66,6 +71,12 @@ curl -X POST http://192.168.2.21:8767/api/sources/<source_id>/items \
       }
     ]
   }'
+```
+
+写入返回会包含 `skipped_detail`：
+
+```json
+{"ok":true,"added":1,"duplicates":0,"skipped":0,"skipped_detail":{"missing_url":0,"invalid_url":0}}
 ```
 
 跨源批量写入：
@@ -161,6 +172,9 @@ curl -X POST http://192.168.2.21:8767/api/sources/resolve \
 | POST | /api/items/bulk | 跨源批量写入 items |
 | GET | /api/items | 查询 items |
 | GET | /api/sources/:id/items | 按源查询 items |
+| POST | /api/sources/validate | 快速检查信息源可用性 |
+| POST | /api/sources/disable-failed | 批量禁用抓取失败源 |
+| POST | /api/sources/delete-inactive | 批量删除停用源 |
 | GET | /api/marks | 获取收藏 |
 | POST | /api/marks | 添加收藏 |
 | DELETE | /api/marks/:id | 删除收藏 |
